@@ -32,6 +32,7 @@ button.sec{background:none;border:1px solid var(--bd);color:var(--tx);border-rad
 .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;cursor:pointer}
 .num{font-weight:700}.mut{color:var(--mut);font-size:13px}
 .badge{color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+details>summary{cursor:pointer;list-style:none}details>summary::-webkit-details-marker{display:none}
 .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
 .chips button{white-space:nowrap}.chips button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
 .det{margin-top:10px;border-top:1px solid var(--bd);padding-top:10px}.det p{margin:4px 0;white-space:pre-wrap}
@@ -60,9 +61,8 @@ button.sec{background:none;border:1px solid var(--bd);color:var(--tx);border-rad
     <div class="tabs"><button id="tTec" class="on">Técnico em campo</button><button id="tPcm">Painel PCM</button></div>
     <div id="status" class="msg" hidden></div>
 
-    <section id="vTec">
-      <div class="card">
-        <b>Novo chamado</b>
+    <details id="novo" class="card" open>
+        <summary><b>➕ Novo chamado</b></summary>
         <label>Local / Cliente *</label><input id="fLocal">
         <div class="row">
           <div><label>Equipamento / TAG *</label><input id="fEq"></div>
@@ -83,7 +83,10 @@ button.sec{background:none;border:1px solid var(--bd);color:var(--tx);border-rad
         <input id="fFoto" type="file" accept="image/*" capture="environment" multiple>
         <div class="photos" id="prev"></div>
         <button class="pri" id="bSend">Enviar para o PCM</button>
-      </div>
+      </details>
+
+    <section id="vTec">
+      
       <h2 style="font-size:16px">Meus chamados</h2>
       <div id="mine"></div>
     </section>
@@ -222,7 +225,7 @@ async function boot(){
   $("#who").textContent=me.name+(isPCM?" (PCM) ":" ");
   $("#tPcm").hidden=!isPCM;
   $("#auth").hidden=true;$("#app").hidden=false;
-  show(isPCM?"pcm":"tec");
+  show(isPCM?"pcm":"tec");$("#novo").open=!isPCM;
   await load();clearInterval(timer);timer=setInterval(load,30000);
 }
 boot();
