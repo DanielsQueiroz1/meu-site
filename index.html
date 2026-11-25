@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>OS Campo → PCM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f6f8;--card:#fff;--tx:#151a21;--mut:#5d6773;--bd:#dce1e7;--ac:#0b6bcb;--acx:#fff;--in:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#111418;--card:#1a1f26;--tx:#e8ecf1;--mut:#9aa5b1;--bd:#2c3440;--ac:#4a9bf0;--acx:#08111c;--in:#10141a;color-scheme:dark}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:12px 14px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 12px}
+h1{font-size:18px;margin:0}
+.tabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:4px}
+.tabs button{flex:1;border:0;background:none;color:var(--mut);padding:9px 6px;border-radius:7px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button.on{background:var(--ac);color:var(--acx)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:12px 0}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px;font-weight:600}
+input,select,textarea{width:100%;font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:8px;padding:10px}
+textarea{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.row{grid-template-columns:1fr}}
+button.pri{width:100%;margin-top:14px;background:var(--ac);color:var(--acx);border:0;border-radius:10px;padding:14px;font:inherit;font-weight:700;cursor:pointer}
+button.pri:disabled{opacity:.5}
+button.sec{background:none;border:1px solid var(--bd);color:var(--tx);border-radius:8px;padding:8px 12px;font:inherit;cursor:pointer}
+.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ph{position:relative;width:84px;height:84px}
+.ph img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--bd);cursor:zoom-in}
+.ph b{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#c0392b;color:#fff;text-align:center;line-height:22px;cursor:pointer;font-size:13px}
+.top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;cursor:pointer}
+.num{font-weight:700}.mut{color:var(--mut);font-size:13px}
+.badge{color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.chips button{white-space:nowrap}.chips button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.det{margin-top:10px;border-top:1px solid var(--bd);padding-top:10px}.det p{margin:4px 0;white-space:pre-wrap}
+.note{background:var(--bg);border-radius:8px;padding:8px 10px;margin:6px 0;font-size:14px}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px}
+.lb img{max-width:100%;max-height:100%;border-radius:6px}
+.empty{text-align:center;color:var(--mut);padding:26px 0}
+.msg{padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--bd);margin:10px 0;font-size:14px}
+#auth{max-width:380px;margin:40px auto}
+</style>
+</head>
+<body>
+<main>
+  <section id="auth" class="card" hidden>
+    <h1>🛠️ OS Campo → PCM</h1>
+    <label>Nome (somente no cadastro)</label><input id="aNome" autocomplete="name">
+    <label>E-mail</label><input id="aMail" type="email" autocomplete="email">
+    <label>Senha (mínimo 6 caracteres)</label><input id="aPass" type="password" autocomplete="current-password">
+    <button class="pri" id="bIn">Entrar</button>
+    <button class="sec" id="bUp" style="width:100%;margin-top:8px">Criar conta</button>
+    <div id="aMsg" class="msg" hidden></div>
+  </section>
+
+  <div id="app" hidden>
+    <header><h1>🛠️ Ordens de Serviço</h1><span class="mut"><span id="who"></span> <button class="sec" id="bOut">Sair</button></span></header>
+    <div class="tabs"><button id="tTec" class="on">Técnico em campo</button><button id="tPcm">Painel PCM</button></div>
+    <div id="status" class="msg" hidden></div>
+
+    <section id="vTec">
+      <div class="card">
+        <b>Novo chamado</b>
+        <label>Local / Cliente *</label><input id="fLocal">
+        <div class="row">
+          <div><label>Equipamento / TAG *</label><input id="fEq"></div>
+          <div><label>Tipo</label><select id="fTipo"><option>Corretiva</option><option>Preventiva</option><option>Inspeção</option><option>Melhoria</option></select></div>
+        </div>
+        <div class="row">
+          <div><label>Prioridade</label><select id="fPri"><option>Normal</option><option>Alta</option><option>Urgente</option><option>Baixa</option></select></div>
+          <div><label>Equipamento parado?</label><select id="fPar"><option>Não</option><option>Sim</option></select></div>
+        </div>
+        <label>Problema encontrado *</label><textarea id="fDesc"></textarea>
+        <label>Serviço executado</label><textarea id="fFeito"></textarea>
+        <label>Peças / materiais utilizados</label><input id="fPecas">
+        <div class="row">
+          <div><label>Início</label><input id="fIni" type="datetime-local"></div>
+          <div><label>Fim</label><input id="fFim" type="datetime-local"></div>
+        </div>
+        <label>Fotos (antes / depois)</label>
+        <input id="fFoto" type="file" accept="image/*" capture="environment" multiple>
+        <div class="photos" id="prev"></div>
+        <button class="pri" id="bSend">Enviar para o PCM</button>
+      </div>
+      <h2 style="font-size:16px">Meus chamados</h2>
+      <div id="mine"></div>
+    </section>
+
+    <section id="vPcm" hidden>
+      <div class="card" style="padding:10px">
+        <input id="fBusca" placeholder="Buscar por nº, TAG, local, técnico…">
+        <div class="chips" id="chips" style="margin-top:8px"></div>
+      </div>
+      <div id="all"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+/* ====== CONFIGURE AQUI (Supabase: Project Settings > API) ====== */
+const SUPABASE_URL="https://aemzqkpafjbyvitwtolj.supabase.co";
+const SUPABASE_KEY="sb_publishable_NxjfA0DPkveDlDP7lEcoHg_z_anvXwj";
+/* =============================================================== */
+
+if(!window.supabase){document.body.innerHTML="<div style='padding:20px;font-family:sans-serif'><h3>Não foi possível carregar a biblioteca do Supabase</h3><p>Verifique a internet, desative bloqueadores de anúncio para esta página e recarregue.</p></div>";throw new Error("supabase-js não carregou")}
+window.addEventListener("error",e=>{const m=document.getElementById("aMsg");if(m){m.textContent="Erro: "+e.message;m.hidden=false;document.getElementById("auth").hidden=false}});
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const ST=["Aberta","Em análise","Programada","Em execução","Concluída","Cancelada"];
+const COL={"Aberta":"#c2410c","Em análise":"#7c3aed","Programada":"#0369a1","Em execução":"#b45309","Concluída":"#15803d","Cancelada":"#6b7280"};
+const $=s=>document.querySelector(s);
+function h(t,a,...c){const e=document.createElement(t);for(const k in a||{}){if(k==="class")e.className=a[k];else if(k.startsWith("on"))e[k]=a[k];else e.setAttribute(k,a[k])}for(const x of c.flat())if(x!=null&&x!==false)e.append(x.nodeType?x:document.createTextNode(x));return e}
+const fmt=t=>t?new Date(t).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"}):"";
+let me=null,isPCM=false,list=[],pend=[],open=null,filter="Todas",q="",timer=null;
+function note(t){const s=$("#status");s.textContent=t;s.hidden=!t}
+function show(tab){const t=tab==="tec";$("#vTec").hidden=!t;$("#vPcm").hidden=t;$("#tTec").classList.toggle("on",t);$("#tPcm").classList.toggle("on",!t)}
+$("#tTec").onclick=()=>show("tec");$("#tPcm").onclick=()=>show("pcm");
+
+/* ---------- login ---------- */
+function amsg(t){const m=$("#aMsg");m.textContent=t;m.hidden=!t}
+$("#bIn").onclick=async()=>{
+  const {error}=await sb.auth.signInWithPassword({email:$("#aMail").value.trim(),password:$("#aPass").value});
+  if(error)amsg("Não foi possível entrar: "+error.message);else boot();
+};
+$("#bUp").onclick=async()=>{
+  const {data,error}=await sb.auth.signUp({email:$("#aMail").value.trim(),password:$("#aPass").value,options:{data:{nome:$("#aNome").value.trim()}}});
+  if(error)amsg("Erro no cadastro: "+error.message);
+  else if(!data.session)amsg("Conta criada. Confirme o e-mail recebido e depois clique em Entrar.");
+  else boot();
+};
+$("#bOut").onclick=async()=>{await sb.auth.signOut();clearInterval(timer);location.reload()};
+
+/* ---------- fotos ---------- */
+async function shrink(f){
+  try{const b=await createImageBitmap(f);const s=Math.min(1,1280/Math.max(b.width,b.height));
+    const c=document.createElement("canvas");c.width=Math.round(b.width*s);c.height=Math.round(b.height*s);
+    c.getContext("2d").drawImage(b,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(r,"image/jpeg",.78))}catch(e){return f}
+}
+$("#fFoto").onchange=async e=>{for(const f of e.target.files){const b=await shrink(f);pend.push({blob:b,url:URL.createObjectURL(b)})}e.target.value="";drawPrev()};
+function drawPrev(){$("#prev").replaceChildren(...pend.map((x,i)=>h("div",{class:"ph"},h("img",{src:x.url,onclick:()=>lightbox(x.url)}),h("b",{onclick:()=>{pend.splice(i,1);drawPrev()}},"×"))))}
+function lightbox(u){const l=h("div",{class:"lb",onclick:()=>l.remove()},h("img",{src:u}));document.body.append(l)}
+
+/* ---------- envio ---------- */
+$("#bSend").onclick=async()=>{
+  const v=id=>$(id).value.trim();
+  if(!v("#fLocal")||!v("#fEq")||!v("#fDesc")){note("Preencha local, equipamento e problema encontrado.");return}
+  const b=$("#bSend");b.disabled=true;
+  try{
+    const d=new Date(),p=n=>String(n).padStart(2,"0");
+    const num="OS-"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+    const fotos=[];
+    for(let i=0;i<pend.length;i++){
+      b.textContent="Enviando foto "+(i+1)+" de "+pend.length+"…";
+      const path=me.id+"/"+num+"-"+(i+1)+".jpg";
+      const up=await sb.storage.from("fotos").upload(path,pend[i].blob,{contentType:"image/jpeg"});
+      if(up.error)throw up.error;
+      fotos.push({url:sb.storage.from("fotos").getPublicUrl(path).data.publicUrl});
+    }
+    b.textContent="Salvando…";
+    const {error}=await sb.from("os").insert({num,localidade:v("#fLocal"),equip:v("#fEq"),tipo:$("#fTipo").value,prior:$("#fPri").value,parado:$("#fPar").value,descr:v("#fDesc"),feito:v("#fFeito"),pecas:v("#fPecas"),ini:$("#fIni").value,fim:$("#fFim").value,fotos,tecnico:me.name,tecnico_id:me.id});
+    if(error)throw error;
+    ["#fLocal","#fEq","#fDesc","#fFeito","#fPecas","#fIni","#fFim"].forEach(i=>$(i).value="");
+    pend=[];drawPrev();note("");await load();
+    b.textContent="✔ Enviado! "+num;setTimeout(()=>b.textContent="Enviar para o PCM",2500);
+  }catch(err){note("Não foi possível enviar: "+(err.message||err));b.textContent="Enviar para o PCM"}
+  b.disabled=false;
+};
+
+/* ---------- listagem ---------- */
+function card(o){
+  const isOpen=open===o.num;
+  const c=h("div",{class:"card"},h("div",{class:"top",onclick:()=>{open=isOpen?null:o.num;render()}},
+    h("div",{},h("div",{class:"num"},o.num+" · "+o.equip),h("div",{class:"mut"},o.localidade),
+      h("div",{class:"mut"},o.tipo+" · "+o.prior+(o.parado==="Sim"?" · ⚠ parado":"")+" · "+o.tecnico+" · "+fmt(o.created_at))),
+    h("span",{class:"badge",style:"background:"+(COL[o.status]||"#6b7280")},o.status)));
+  if(!isOpen)return c;
+  const d=h("div",{class:"det"},
+    h("p",{},h("b",{},"Problema: "),o.descr),
+    o.feito&&h("p",{},h("b",{},"Executado: "),o.feito),
+    o.pecas&&h("p",{},h("b",{},"Peças: "),o.pecas),
+    (o.ini||o.fim)&&h("p",{class:"mut"},"Início: "+(o.ini||"–").replace("T"," ")+"  ·  Fim: "+(o.fim||"–").replace("T"," ")),
+    (o.fotos||[]).length?h("div",{class:"photos"},o.fotos.map(f=>h("div",{class:"ph"},h("img",{src:f.url,onclick:()=>lightbox(f.url)})))):null,
+    ...(o.notas||[]).map(n=>h("div",{class:"note"},h("b",{},n.by+": "),n.txt,h("div",{class:"mut"},fmt(n.at)))));
+  if(isPCM){
+    const sel=h("select",{},ST.map(s=>h("option",{value:s},s)));sel.value=o.status;
+    sel.onchange=async()=>{const {error}=await sb.from("os").update({status:sel.value}).eq("num",o.num);error?note("Erro: "+error.message):load()};
+    const inp=h("input",{placeholder:"Observação do PCM…"});
+    const add=h("button",{class:"sec",onclick:async()=>{
+      if(!inp.value.trim())return;
+      const notas=[...(o.notas||[]),{by:me.name||"PCM",at:Date.now(),txt:inp.value.trim()}];
+      const {error}=await sb.from("os").update({notas}).eq("num",o.num);error?note("Erro: "+error.message):load();
+    }},"Adicionar");
+    d.append(h("label",{},"Status (PCM)"),sel,h("label",{},"Observação"),h("div",{style:"display:flex;gap:6px"},inp,add));
+  }
+  c.append(d);return c;
+}
+function render(){
+  const mine=list.filter(o=>o.tecnico_id===me.id);
+  $("#mine").replaceChildren(...(mine.length?mine.map(card):[h("div",{class:"empty"},"Nenhum chamado seu ainda.")]));
+  const cnt=s=>s==="Todas"?list.length:list.filter(o=>o.status===s).length;
+  $("#chips").replaceChildren(...["Todas",...ST].map(s=>h("button",{class:"sec"+(s===filter?" on":""),onclick:()=>{filter=s;render()}},s+" ("+cnt(s)+")")));
+  const t=q.toLowerCase();
+  const rows=list.filter(o=>(filter==="Todas"||o.status===filter)&&(!t||[o.num,o.equip,o.localidade,o.tecnico,o.descr].join(" ").toLowerCase().includes(t)));
+  $("#all").replaceChildren(...(rows.length?rows.map(card):[h("div",{class:"empty"},"Nenhuma OS encontrada.")]));
+}
+$("#fBusca").oninput=e=>{q=e.target.value;render()};
+async function load(){
+  const {data,error}=await sb.from("os").select("*").order("created_at",{ascending:false});
+  if(error){note("Erro ao carregar: "+error.message);return}
+  list=data;render();
+}
+
+/* ---------- início ---------- */
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){$("#auth").hidden=false;$("#app").hidden=true;return}
+  const u=session.user;
+  const {data:p}=await sb.from("perfis").select("nome,papel").eq("id",u.id).maybeSingle();
+  me={id:u.id,name:(p&&p.nome)||u.email};isPCM=!!p&&p.papel==="pcm";
+  $("#who").textContent=me.name+(isPCM?" (PCM) ":" ");
+  $("#tPcm").hidden=!isPCM;
+  $("#auth").hidden=true;$("#app").hidden=false;
+  show(isPCM?"pcm":"tec");
+  await load();clearInterval(timer);timer=setInterval(load,30000);
+}
+boot();
+</script>
+</body>
+</html>
