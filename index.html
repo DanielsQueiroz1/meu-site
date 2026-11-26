@@ -215,4 +215,31 @@ function csv(rows){
   for(const o of rows)L.push([o.num,fmt(o.created_at),o.status,o.tecnico,o.localidade,o.equip,o.tipo,o.prior,o.parado,o.descr,o.feito,o.pecas,(o.ini||"").replace("T"," "),(o.fim||"").replace("T"," "),(o.fotos||[]).map(f=>f.url).join(" "),(o.notas||[]).map(n=>n.by+": "+n.txt).join(" | ")].map(e).join(";"));
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob(["\ufeff"+L.join("\r\n")],{type:"text/csv;charset=utf-8"}));
-  a.d
+  a.download="os-"+new Date().toISOString().slice(0,10)+".csv";
+  document.body.append(a);a.click();a.remove();
+}
+$("#bCsv").onclick=()=>csv(visible());
+$("#bCsvAll").onclick=()=>csv(list);
+async function load(){
+  const {data,error}=await sb.from("os").select("*").order("created_at",{ascending:false});
+  if(error){note("Erro ao carregar: "+error.message);return}
+  list=data;render();
+}
+
+/* ---------- início ---------- */
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){$("#auth").hidden=false;$("#app").hidden=true;return}
+  const u=session.user;
+  const {data:p}=await sb.from("perfis").select("nome,papel").eq("id",u.id).maybeSingle();
+  me={id:u.id,name:(p&&p.nome)||u.email};isPCM=!!p&&p.papel==="pcm";
+  $("#who").textContent=me.name+(isPCM?" (PCM) ":" ");
+  $("#tPcm").hidden=!isPCM;document.querySelector(".tabs").style.display=isPCM?"flex":"none";
+  $("#auth").hidden=true;$("#app").hidden=false;
+  show(isPCM?"pcm":"tec");$("#novo").open=!isPCM;
+  await load();clearInterval(timer);timer=setInterval(load,30000);
+}
+boot();
+</script>
+</body>
+</html>
